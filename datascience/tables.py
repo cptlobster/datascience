@@ -2,6 +2,7 @@
 
 __all__ = ['Table']
 
+from __future__ import annotations
 import abc
 import collections
 import collections.abc
@@ -12,6 +13,7 @@ import itertools
 import numbers
 import urllib.parse
 import warnings
+from typing import List
 
 import numpy as np
 import matplotlib
@@ -71,13 +73,13 @@ class Table(collections.abc.MutableMapping):
 
     # Deprecated
     @classmethod
-    def from_rows(cls, rows, labels):
+    def from_rows(cls, rows, labels) -> Table:
         """Create a table from a sequence of rows (fixed-length sequences). [Deprecated]"""
         warnings.warn("Table.from_rows is deprecated. Use Table(labels).with_rows(...)", FutureWarning)
         return cls(labels).with_rows(rows)
 
     @classmethod
-    def from_records(cls, records):
+    def from_records(cls, records) -> Table:
         """Create a table from a sequence of records (dicts with fixed keys).
         
            Args:
@@ -112,13 +114,13 @@ class Table(collections.abc.MutableMapping):
 
     # Deprecated
     @classmethod
-    def from_columns_dict(cls, columns):
+    def from_columns_dict(cls, columns) -> Table:
         """Create a table from a mapping of column labels to column values. [Deprecated]"""
         warnings.warn("Table.from_columns_dict is deprecated. Use Table().with_columns(...)", FutureWarning)
         return cls().with_columns(columns.items())
 
     @classmethod
-    def read_table(cls, filepath_or_buffer, *args, **vargs):
+    def read_table(cls, filepath_or_buffer, *args, **vargs) -> Table:
         """Read a table from a file or web address.
         
         Args:
@@ -163,7 +165,7 @@ class Table(collections.abc.MutableMapping):
         df = pandas.read_csv(filepath_or_buffer, *args, **vargs)
         return cls.from_df(df)
 
-    def _with_columns(self, columns):
+    def _with_columns(self, columns) -> Table:
         """Create a table from a sequence of columns, copying column labels."""
         table = type(self)()
         for label, column in zip(self.labels, columns):
@@ -178,7 +180,7 @@ class Table(collections.abc.MutableMapping):
             table._formats[label] = self._formats[label]
 
     @classmethod
-    def from_df(cls, df, keep_index=False):
+    def from_df(cls, df, keep_index=False) -> Table:
         """Convert a Pandas DataFrame into a Table.
         
         Args:
@@ -222,7 +224,7 @@ class Table(collections.abc.MutableMapping):
         return t
 
     @classmethod
-    def from_array(cls, arr):
+    def from_array(cls, arr) -> Table:
         """Convert a structured NumPy array into a Table.
 
            Args:
@@ -257,22 +259,22 @@ class Table(collections.abc.MutableMapping):
     # Magic Methods #
     #################
 
-    def __getitem__(self, index_or_label):
+    def __getitem__(self, index_or_label: str | int) -> np.Array:
         return self.column(index_or_label)
 
-    def __setitem__(self, index_or_label, values):
+    def __setitem__(self, index_or_label: str | int, values):
         self.append_column(index_or_label, values)
 
-    def __delitem__(self, index_or_label):
+    def __delitem__(self, index_or_label: str | int):
         label = self._as_label(index_or_label)
         del self._columns[label]
         if label in self._formats:
             del self._formats[label]
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._columns)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[str]:
         return iter(self.labels)
 
     ####################
@@ -280,7 +282,7 @@ class Table(collections.abc.MutableMapping):
     ####################
 
     @property
-    def num_rows(self):
+    def num_rows(self) -> int:
         """
         Computes the number of rows in a table
         
@@ -300,7 +302,7 @@ class Table(collections.abc.MutableMapping):
         return self._num_rows
 
     @property
-    def rows(self):
+    def rows(self) -> Rows:
         """
         Return a view of all rows.
         
@@ -323,7 +325,7 @@ class Table(collections.abc.MutableMapping):
         """
         return self.Rows(self)
 
-    def row(self, index):
+    def row(self, index: int):
         """
         Return a row.
 
@@ -333,7 +335,7 @@ class Table(collections.abc.MutableMapping):
         return self.rows[index]
 
     @property
-    def labels(self):
+    def labels(self) -> collections.Tuple[str]:
         """
         Return a tuple of column labels.
         
@@ -353,12 +355,12 @@ class Table(collections.abc.MutableMapping):
         return tuple(self._columns.keys())
 
     @property
-    def num_columns(self):
+    def num_columns(self) -> int:
         """Number of columns."""
         return len(self.labels)
 
     @property
-    def columns(self):
+    def columns(self) -> collections.Tuple:
         """
         Return a tuple of columns, each with the values in that column.
         
@@ -379,7 +381,7 @@ class Table(collections.abc.MutableMapping):
         """
         return tuple(self._columns.values())
 
-    def column(self, index_or_label):
+    def column(self, index_or_label: str | int) -> np.Array:
         """Return the values of a column as an array.
 
         table.column(label) is equivalent to table[label].
@@ -421,7 +423,7 @@ class Table(collections.abc.MutableMapping):
         return self._columns[self._as_label(index_or_label)]
 
     @property
-    def values(self):
+    def values(self) -> np.Array:
         """Return data in `self` as a numpy array.
 
         If all columns are the same dtype, the resulting array
@@ -452,7 +454,7 @@ class Table(collections.abc.MutableMapping):
             dtype = None
         return np.array(self.columns, dtype=dtype).T
 
-    def column_index(self, label):
+    def column_index(self, label: str) -> int:
         """
         Return the index of a column by looking up its label.
         
@@ -535,7 +537,7 @@ class Table(collections.abc.MutableMapping):
             rows = zip(*self.select(*column_or_columns).columns)
             return np.array([fn(*row) for row in rows])
 
-    def first(self, label):
+    def first(self, label: str | int):
         """
         Return the zeroth item in a column.
 
@@ -557,7 +559,7 @@ class Table(collections.abc.MutableMapping):
         """
         return self.column(label)[0]
 
-    def last(self, label):
+    def last(self, label: str | int):
         """
         Return the last item in a column.
         
@@ -785,7 +787,7 @@ class Table(collections.abc.MutableMapping):
             self._formats[label] = formatter
         return self
 
-    def move_to_start(self, column_label):
+    def move_to_start(self, column_label: str | int) -> Table:
         """
         Move a column to be the first column.
 
@@ -819,7 +821,7 @@ class Table(collections.abc.MutableMapping):
         self._columns.move_to_end(self._as_label(column_label), last=False)
         return self
 
-    def move_to_end(self, column_label):
+    def move_to_end(self, column_label: str | int) -> Table:
         """
         Move a column to be the last column.
 
@@ -853,7 +855,7 @@ class Table(collections.abc.MutableMapping):
         self._columns.move_to_end(self._as_label(column_label))
         return self
 
-    def append(self, row_or_table):
+    def append(self, row_or_table) -> Table:
         """
         Append a row or all rows of a table in place. An appended table must have all
         columns of self.
@@ -912,7 +914,7 @@ class Table(collections.abc.MutableMapping):
         self._num_rows += n
         return self
 
-    def append_column(self, label, values, formatter=None):
+    def append_column(self, label: str, values, formatter=None) -> Table:
         """Appends a column to the table or replaces a column.
 
         ``__setitem__`` is aliased to this method:
@@ -999,7 +1001,7 @@ class Table(collections.abc.MutableMapping):
             self.set_format(label, formatter)
         return self
 
-    def relabel(self, column_label, new_label):
+    def relabel(self, column_label, new_label) -> Table:
         """Changes the label(s) of column(s) specified by ``column_label`` to
         labels in ``new_label``.
 
@@ -1062,7 +1064,7 @@ class Table(collections.abc.MutableMapping):
 
         return self
 
-    def remove(self, row_or_row_indices):
+    def remove(self, row_or_row_indices: int | List[int]) -> Table:
         """
         Removes a row or multiple rows of a table in place (row number is 0 indexed).
         If row_or_row_indices is not int or list, no changes will be made to the table.
@@ -1113,7 +1115,7 @@ class Table(collections.abc.MutableMapping):
     # Transformation #
     ##################
 
-    def copy(self, *, shallow=False):
+    def copy(self, *, shallow=False) -> Table:
         """
         Return a copy of a table.
 
@@ -1201,7 +1203,7 @@ class Table(collections.abc.MutableMapping):
             self._add_column_and_format(table, label, column)
         return table
 
-    def select(self, *column_or_columns):
+    def select(self, *column_or_columns: str | int) -> Table:
         """Return a table with only the columns in ``column_or_columns``.
 
         Args:
@@ -1261,7 +1263,7 @@ class Table(collections.abc.MutableMapping):
     def exclude(self):
         raise NotImplementedError()
 
-    def drop(self, *column_or_columns):
+    def drop(self, *column_or_columns) -> Table:
         """Return a Table with only columns other than selected label or
         labels.
 
@@ -1319,7 +1321,7 @@ class Table(collections.abc.MutableMapping):
         return self.select([c for (i, c) in enumerate(self.labels)
                             if i not in exclude and c not in exclude])
 
-    def where(self, column_or_label, value_or_predicate=None, other=None):
+    def where(self, column_or_label, value_or_predicate=None, other=None) -> Table:
         """
         Return a new ``Table`` containing rows where ``value_or_predicate``
         returns True for values in ``column_or_label``.
@@ -1415,7 +1417,7 @@ class Table(collections.abc.MutableMapping):
             column = [predicate(x) for x in column]
         return self.take(np.nonzero(column)[0])
 
-    def sort(self, column_or_label, descending=False, distinct=False):
+    def sort(self, column_or_label, descending: bool = False, distinct: bool = False) -> Table:
         """Return a Table of rows sorted according to the values in a column.
 
         Args:
@@ -1498,7 +1500,7 @@ class Table(collections.abc.MutableMapping):
         assert (row_numbers < self.num_rows).all(), row_numbers
         return self.take(row_numbers)
 
-    def group(self, column_or_label, collect=None):
+    def group(self, column_or_label, collect=None) -> Table:
         """Group rows by unique values in a column; count or aggregate others.
 
         Args:
@@ -1584,7 +1586,7 @@ class Table(collections.abc.MutableMapping):
         grouped.move_to_start(column_label)
         return grouped
 
-    def groups(self, labels, collect=None):
+    def groups(self, labels, collect=None) -> Table:
         """Group rows by multiple columns, count or aggregate others.
 
         Args:
@@ -1664,7 +1666,7 @@ class Table(collections.abc.MutableMapping):
                 grouped[_collected_label(collect, label)] = column
             return grouped
 
-    def pivot(self, columns, rows, values=None, collect=None, zero=None):
+    def pivot(self, columns, rows, values=None, collect=None, zero=None) -> Table:
         """Generate a table with a column for each unique value in ``columns``,
         with rows for each unique value in ``rows``. Each row counts/aggregates
         the values that match both row and column based on ``collect``.
@@ -1757,7 +1759,7 @@ class Table(collections.abc.MutableMapping):
             pivoted[pivot] = column
         return pivoted
 
-    def pivot_bin(self, pivot_columns, value_column, bins=None, **vargs) :
+    def pivot_bin(self, pivot_columns, value_column, bins=None, **vargs) -> Table:
         """Form a table with columns formed by the unique tuples in pivot_columns
         containing counts per bin of the values associated with each tuple in the value_column.
 
@@ -1876,7 +1878,7 @@ class Table(collections.abc.MutableMapping):
             binned[col_label] = np.append(counts,0)
         return binned
 
-    def stack(self, key, labels=None):
+    def stack(self, key, labels=None) -> Table:
         """Takes k original columns and returns two columns, with col. 1 of
         all column names and col. 2 of all associated data.
         
@@ -1952,7 +1954,7 @@ class Table(collections.abc.MutableMapping):
              if k != key and k in labels]
         return type(self)([key, 'column', 'value']).with_rows(rows)
 
-    def join(self, column_label, other, other_label=None):
+    def join(self, column_label, other, other_label=None) -> Table:
         """Creates a new table with the columns of self and other, containing
         rows for all values of a column that appear in both tables.
 
@@ -2034,7 +2036,7 @@ class Table(collections.abc.MutableMapping):
         # original single column join
         return self._join(column_label, other, other_label)
 
-    def _join(self, column_label, other, other_label=[]):
+    def _join(self, column_label, other, other_label=[]) -> Table:
         """joins when COLUMN_LABEL is a string"""
         if self.num_rows == 0 or other.num_rows == 0:
             return None
@@ -2045,7 +2047,7 @@ class Table(collections.abc.MutableMapping):
         other_rows = other.index_by(other_label)
         return self._join_helper([column_label], self_rows, other, [other_label], other_rows)
 
-    def _multiple_join(self, column_label, other, other_label=[]):
+    def _multiple_join(self, column_label, other, other_label=[]) -> Table:
         """joins when column_label is a non-string iterable"""
         assert len(column_label) == len(other_label), 'unequal number of columns'
 
@@ -2054,7 +2056,7 @@ class Table(collections.abc.MutableMapping):
         return self._join_helper(column_label, self_rows, other, other_label, other_rows)
 
 
-    def _join_helper(self, column_label, self_rows, other, other_label, other_rows):
+    def _join_helper(self, column_label, self_rows, other, other_label, other_rows) -> Table:
         # Gather joined rows from self_rows that have join values in other_rows
         joined_rows = []
         for v, rows in self_rows.items():
@@ -2088,7 +2090,7 @@ class Table(collections.abc.MutableMapping):
 
         return joined
 
-    def stats(self, ops=(min, max, np.median, sum)):
+    def stats(self, ops=(min, max, np.median, sum)) -> Table:
         """
         Compute statistics for each column and place them in a table.
 
@@ -2157,7 +2159,7 @@ class Table(collections.abc.MutableMapping):
         table.move_to_start(stats)
         return table
 
-    def _as_label(self, index_or_label):
+    def _as_label(self, index_or_label) -> str | numbers.Integral:
         """Convert index to label."""
         if isinstance(index_or_label, str):
             return index_or_label
@@ -2211,7 +2213,7 @@ class Table(collections.abc.MutableMapping):
             assert len(c) == self.num_rows, 'column length mismatch'
             return c
 
-    def percentile(self, p):
+    def percentile(self, p) -> Table:
         """Return a new table with one row containing the pth percentile for
         each column.
 
@@ -2238,7 +2240,7 @@ class Table(collections.abc.MutableMapping):
         percentiles = [[_util.percentile(p, column)] for column in self.columns]
         return self._with_columns(percentiles)
 
-    def sample(self, k=None, with_replacement=True, weights=None):
+    def sample(self, k: int = None, with_replacement=True, weights=None) -> Table:
         """Return a new table where k rows are randomly sampled from the
         original table.
 
@@ -2310,7 +2312,7 @@ class Table(collections.abc.MutableMapping):
         sample = self._with_columns(columns)
         return sample
 
-    def shuffle(self):
+    def shuffle(self) -> Table:
         """Return a new table where all the rows are randomly shuffled from the
         original table.
 
@@ -2319,7 +2321,7 @@ class Table(collections.abc.MutableMapping):
         """
         return self.sample(with_replacement=False)
 
-    def sample_from_distribution(self, distribution, k, proportions=False):
+    def sample_from_distribution(self, distribution, k, proportions=False) -> Table:
         """Return a new table with the same number of rows and a new column.
         The values in the distribution column are define a multinomial.
         They are replaced by sample counts/proportions in the output.
@@ -2351,7 +2353,7 @@ class Table(collections.abc.MutableMapping):
         label = self._unused_label(self._as_label(distribution) + ' sample')
         return self.with_column(label, sample)
 
-    def split(self, k):
+    def split(self, k: int) -> (Table, Table):
         """Return a tuple of two tables where the first table contains
         ``k`` rows randomly sampled and the second contains the remaining rows.
 
@@ -2398,7 +2400,7 @@ class Table(collections.abc.MutableMapping):
         return first, rest
 
 
-    def with_row(self, row):
+    def with_row(self, row) -> Table:
         """Return a table with an additional row.
 
         Args:
@@ -2417,7 +2419,7 @@ class Table(collections.abc.MutableMapping):
         self.append(row)
         return self
 
-    def with_rows(self, rows):
+    def with_rows(self, rows) -> Table:
         """Return a table with additional rows.
 
         Args:
@@ -2439,7 +2441,7 @@ class Table(collections.abc.MutableMapping):
         self.append(self._with_columns(zip(*rows)))
         return self
 
-    def with_column(self, label, values, formatter=None):
+    def with_column(self, label: str, values, formatter=None) -> Table:
         """Return a new table with an additional or replaced column.
 
         Args:
@@ -2500,7 +2502,7 @@ class Table(collections.abc.MutableMapping):
         new_table.append_column(label, values, formatter)
         return new_table
 
-    def with_columns(self, *labels_and_values, **formatter):
+    def with_columns(self, *labels_and_values, **formatter) -> Table:
         """Return a table with additional or replaced columns.
 
 
@@ -2585,7 +2587,7 @@ class Table(collections.abc.MutableMapping):
 
 
 
-    def relabeled(self, label, new_label):
+    def relabeled(self, label, new_label) -> Table:
         """Return a new table with ``label`` specifying column label(s)
         replaced by corresponding ``new_label``.
 
@@ -2686,7 +2688,7 @@ class Table(collections.abc.MutableMapping):
             binned[label + ' ' + tag] = np.append(counts, 0)
         return binned
 
-    def move_column(self, label, index):
+    def move_column(self, label, index) -> Table:
         """Returns a new table with specified column moved to the specified column index.
 
         Args:
@@ -2733,7 +2735,7 @@ class Table(collections.abc.MutableMapping):
     # Exporting / Displaying #
     ##########################
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.as_text(self.max_str_rows)
 
     __repr__ = __str__
@@ -2801,7 +2803,7 @@ class Table(collections.abc.MutableMapping):
             fmts = list(map(type(self)._use_html_if_available, fmts))
         return fmts
 
-    def as_text(self, max_rows=0, sep=" | "):
+    def as_text(self, max_rows=0, sep=" | ") -> str:
         """Format table as text
             
             Args:   
@@ -3013,7 +3015,7 @@ class Table(collections.abc.MutableMapping):
             index.setdefault(key, []).append(row)
         return index
 
-    def to_df(self):
+    def to_df(self) -> pandas.DataFrame:
         """Convert the table to a Pandas DataFrame.
             
             Args:
@@ -3083,7 +3085,7 @@ class Table(collections.abc.MutableMapping):
         # index=False avoids row numbers in the output
         self.to_df().to_csv(filename, index=False)
 
-    def to_array(self):
+    def to_array(self) -> np.array:
         """Convert the table to a structured NumPy array.
 
         The resulting array contains a sequence of rows from the table.
@@ -5777,7 +5779,7 @@ class Table(collections.abc.MutableMapping):
                 self._row = type('Row', (Table.Row, ), dict(_table=self._table))
             return self._row(c[i] for c in self._table._columns.values())
 
-        def __len__(self):
+        def __len__(self) -> int:
             """
             Returns the number of rows in the table.
 
@@ -5793,7 +5795,7 @@ class Table(collections.abc.MutableMapping):
             """
             return self._table.num_rows
 
-        def __repr__(self):
+        def __repr__(self) -> str:
             """
             Returns the printable representation of the given table as string.
             Uses the standard repr() function.
@@ -5813,7 +5815,7 @@ class Table(collections.abc.MutableMapping):
             return '{0}({1})'.format(type(self).__name__, repr(self._table))
 
 
-def _is_array_integer(arr):
+def _is_array_integer(arr) -> bool:
     """Returns True if an array contains integers (integer type or near-int
     float values) and False otherwise.
 
